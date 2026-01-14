@@ -1,0 +1,112 @@
+
+Sub trasladarHojasConSelector()
+    Dim wbOrigen As Workbook, wbExterno As Workbook, wbNuevo As Workbook
+    Dim rutaNuevo As String, rutaExterno As String
+    Dim nombreHojaOrigen As String, nombreHojaExterna As String
+    Dim wsDestinoExterno As Worksheet
+    Dim fdg As FileDialog
+
+' Configuración
+nombreHojaOrigen = "CCP"
+nombreHojaExterna = "DID"
+    
+    Set wbOrigen = ThisWorkbook
+rutaNuevo = wbOrigen.Path & "\CCP y DID.xlsx"
+
+' SELECTOR DE ARCHIVO MANUAL
+    Set fdg = Application.FileDialog(msoFileDialogFilePicker)
+    With fdg
+    .Title = "Selecciona el archivo: APP - RLI SECURITY 2025.xlsx"
+        .InitialFileName = wbOrigen.Path & "\"
+            .Filters.Clear
+            .Filters.Add "Archivos Excel", "*.xlsx; *.xlsm; *.xls"
+
+If.Show = -1 Then
+rutaExterno = .SelectedItems(1)
+Else
+            MsgBox "Operación cancelada por el usuario.", vbInformation
+            Exit Sub
+        End If
+    End With
+
+' Optimización
+Application.ScreenUpdating = False
+Application.DisplayAlerts = False
+Application.EnableEvents = False
+    
+    On Error GoTo ManejadorError
+
+' Crear nuevo libro
+    Set wbNuevo = Workbooks.Add
+
+' Copiar primera hoja
+    On Error Resume Next
+wbOrigen.Sheets(nombreHojaOrigen).UsedRange.Copy
+    If Err.Number <> 0 Then
+        MsgBox "ERROR: No se encontró la hoja '" & nombreHojaOrigen & "' en el libro actual.", vbCritical
+wbNuevo.Close SaveChanges:= False
+        GoTo Finalizar
+    End If
+    On Error GoTo ManejadorError
+
+wbNuevo.Sheets(1).Range("A1").PasteSpecial Paste:= xlPasteAll
+Application.CutCopyMode = False
+wbNuevo.Sheets(1).Name = "CCP"
+
+' Abrir archivo externo
+    On Error Resume Next
+    Set wbExterno = Workbooks.Open(Filename:=rutaExterno, ReadOnly:=True, UpdateLinks:=False)
+    If Err.Number <> 0 Or wbExterno Is Nothing Then
+        MsgBox "ERROR al abrir el archivo:" & vbCrLf & vbCrLf & _
+"Código: " & Err.Number & vbCrLf & _
+"Descripción: " & Err.Description, vbCritical
+wbNuevo.Close SaveChanges:= False
+        GoTo Finalizar
+    End If
+    On Error GoTo ManejadorError
+
+' Copiar segunda hoja
+    Set wsDestinoExterno = wbNuevo.Sheets.Add(After:=wbNuevo.Sheets(wbNuevo.Sheets.Count))
+    
+    On Error Resume Next
+wbExterno.Sheets(nombreHojaExterna).UsedRange.Copy
+    If Err.Number <> 0 Then
+        MsgBox "ERROR: No se encontró la hoja '" & nombreHojaExterna & "'", vbCritical
+wbExterno.Close SaveChanges:= False
+wbNuevo.Close SaveChanges:= False
+        GoTo Finalizar
+    End If
+    On Error GoTo ManejadorError
+
+wsDestinoExterno.Range("A1").PasteSpecial Paste:= xlPasteAll
+Application.CutCopyMode = False
+wsDestinoExterno.Name = "DID"
+
+wbExterno.Close SaveChanges:= False
+
+' Guardar
+wbNuevo.SaveAs Filename:= rutaNuevo, FileFormat:=xlOpenXMLWorkbook
+    
+    MsgBox "? Proceso completado exitosamente.", vbInformation
+    GoTo Finalizar
+
+ManejadorError:
+    MsgBox "ERROR: " & Err.Number & " - " & Err.Description, vbCritical
+    If Not wbExterno Is Nothing Then wbExterno.Close SaveChanges:= False
+    If Not wbNuevo Is Nothing Then wbNuevo.Close SaveChanges:= False
+
+Finalizar:
+Application.ScreenUpdating = True
+Application.DisplayAlerts = True
+Application.EnableEvents = True
+Application.CutCopyMode = False
+    
+    Set wsDestinoExterno = Nothing
+    Set wbExterno = Nothing
+    Set wbNuevo = Nothing
+    Set wbOrigen = Nothing
+    Set fdg = Nothing
+End Sub
+
+=SI(DID!D10 > 0; DID!C10; 0)
+=SI(D24 > 0; DID!D10; 0)

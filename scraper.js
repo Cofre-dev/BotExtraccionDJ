@@ -180,6 +180,8 @@ async function navegarADeclaracionesJuradas(pagina) {
             return null;
         });
 
+        //Video de prueba de como se veria un video mio programando en la vida real xd
+
         if (misDJ) {
             await misDJ.click();
             await esperar(1500);
